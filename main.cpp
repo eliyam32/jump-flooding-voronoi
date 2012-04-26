@@ -34,7 +34,7 @@ using namespace std;
   STRUCTS
 =================================================================================================*/
 
-// Represents a pixel with position (x,y)
+// Represents a point with (x,y) coordinates
 typedef struct {
 	int x,y;
 } Point;
@@ -54,8 +54,15 @@ vector<Point> Seeds;
 Point* BufferA = NULL;
 Point* BufferB = NULL;
 
-// Which buffer do we read from?
-bool UsingBufferA = true;
+// Buffer dimensions
+int BufferWidth  = INIT_WINDOW_WIDTH;
+int BufferHeight = INIT_WINDOW_HEIGHT;
+
+// Which buffer are we reading from?
+bool ReadingBufferA = true;
+
+// Is the window currently fullscreen?
+bool FullScreen = false;
 
 /*=================================================================================================
   FUNCTIONS
@@ -66,9 +73,7 @@ void ExecuteJumpFlooding( void ) {
 
 	printf( "Executing the Jump Flooding Algorithm...\n" );
 
-	assert( WindowWidth == INIT_WINDOW_WIDTH && WindowHeight == INIT_WINDOW_HEIGHT );
-
-	// If the buffers already exist, delete them
+	// If the buffers already exist, delete them first
 	if( BufferA != NULL ) {
 		free( BufferA );
 		BufferA = NULL;
@@ -79,16 +84,16 @@ void ExecuteJumpFlooding( void ) {
 	}
 
 	// Allocate memory for the two buffers
-	BufferA = (Point*)malloc( sizeof( Point ) * INIT_WINDOW_WIDTH * INIT_WINDOW_HEIGHT );
-	BufferB = (Point*)malloc( sizeof( Point ) * INIT_WINDOW_WIDTH * INIT_WINDOW_HEIGHT );
+	BufferA = (Point*)malloc( sizeof( Point ) * BufferWidth * BufferHeight );
+	BufferB = (Point*)malloc( sizeof( Point ) * BufferWidth * BufferHeight );
 
 	assert( BufferA != NULL && BufferB != NULL );
 
 	// Initialize BufferA with (-1,-1), indicating an invalid closest seed.
 	// We don't need to initialize BufferB because it will be written to in the first round.
-	for( int j = 0; j < INIT_WINDOW_HEIGHT; ++j ) {
-		for( int i = 0; i < INIT_WINDOW_WIDTH; ++i ) {
-			int idx = j*INIT_WINDOW_WIDTH + i;
+	for( int y = 0; y < BufferHeight; ++y ) {
+		for( int x = 0; x < BufferWidth; ++x ) {
+			int idx = ( y * BufferWidth ) + x;
 			BufferA[ idx ].x = -1;
 			BufferA[ idx ].y = -1;
 		}
@@ -96,20 +101,16 @@ void ExecuteJumpFlooding( void ) {
 
 	// Put the seeds into the first buffer
 	for( int i = 0; i < Seeds.size(); ++i ) {
-		Point p = Seeds[i];
-		BufferA[ p.y*INIT_WINDOW_WIDTH + p.x ] = p;
+		Point& p = Seeds[i];
+		BufferA[ ( p.y * BufferWidth ) + p.x ] = p;
 	}
 
 	// Initial step length is half the image's size. If the image isn't square,
 	// we use the largest dimension.
-	int step;
-	if( INIT_WINDOW_WIDTH >= INIT_WINDOW_HEIGHT )
-		step = INIT_WINDOW_WIDTH/2;
-	else
-		step = INIT_WINDOW_HEIGHT/2;
+	int step = BufferWidth > BufferHeight ? BufferWidth/2 : BufferHeight/2;
 
 	// We use this boolean to know which buffer we are reading from
-	UsingBufferA = true;
+	ReadingBufferA = true;
 
 	// We read from the RBuffer and write into the WBuffer
 	Point* RBuffer;
@@ -121,7 +122,7 @@ void ExecuteJumpFlooding( void ) {
 		printf( "Jump Flooding with Step %i.", step );
 
 		// Set which buffers we'll be using
-		if( UsingBufferA == true ) {
+		if( ReadingBufferA == true ) {
 			printf( " Reading from BufferA and writing to BufferB.\n" );
 			RBuffer = BufferA;
 			WBuffer = BufferB;
@@ -132,50 +133,50 @@ void ExecuteJumpFlooding( void ) {
 			WBuffer = BufferA;
 		}
 
-		// Iterate over each pixel to find its closest seed
-		for( int j = 0; j < INIT_WINDOW_HEIGHT; ++j ) {
-			for( int i = 0; i < INIT_WINDOW_WIDTH; ++i ) {
+		// Iterate over each point to find its closest seed
+		for( int y = 0; y < BufferHeight; ++y ) {
+			for( int x = 0; x < BufferWidth; ++x ) {
 
-				// The pixel's absolute index
-				int idx = j*INIT_WINDOW_WIDTH + i;
+				// The point's absolute index in the buffer
+				int idx = ( y * BufferWidth ) + x;
 
-				// The pixel's current closest seed (if any)
+				// The point's current closest seed (if any)
 				Point& p = RBuffer[ idx ];
 
 				// Go ahead and write our current closest seed, if any. If we don't do this
 				// we might lose this information if we don't update our seed this round.
 				WBuffer[ idx ] = p;
 
-				// This is a seed, so skip this pixel
-				if( p.x == i && p.y == j )
+				// This is a seed, so skip this point
+				if( p.x == x && p.y == y )
 					continue;
 
-				// dist will be used to judge which seed is closest
+				// This variable will be used to judge which seed is closest
 				float dist;
 
 				if( p.x == -1 || p.y == -1 )
 					dist = -1; // No closest seed has been found yet
 				else
-					dist = (p.x-i)*(p.x-i) + (p.y-j)*(p.y-j); // Current closest seed's distance
+					dist = (p.x-x)*(p.x-x) + (p.y-y)*(p.y-y); // Current closest seed's distance
 
-				// To find each pixel's closest seed, we look in its 8 neighbors thusly:
+				// To find each point's closest seed, we look at its 8 neighbors thusly:
 				//   (x-step,y-step) (x,y-step) (x+step,y-step)
 				//   (x-step,y     ) (x,y     ) (x+step,y     )
 				//   (x-step,y+step) (x,y+step) (x+step,y+step)
 
-				for( int kj = -1; kj <= 1; ++kj ) {
-					for( int ki = -1; ki <= 1; ++ki ) {
+				for( int ky = -1; ky <= 1; ++ky ) {
+					for( int kx = -1; kx <= 1; ++kx ) {
 
 						// Calculate neighbor's row and column
-						int nj = j + kj * step;
-						int ni = i + ki * step;
+						int ny = y + ky * step;
+						int nx = x + kx * step;
 
-						// If the neighbor is outside the bounds of the image, skip it
-						if( ni < 0 || ni >= INIT_WINDOW_WIDTH || nj < 0 || nj >= INIT_WINDOW_HEIGHT )
+						// If the neighbor is outside the bounds of the buffer, skip it
+						if( nx < 0 || nx >= BufferWidth || ny < 0 || ny >= BufferHeight )
 							continue;
 
 						// Calculate neighbor's absolute index
-						int nidx = nj*INIT_WINDOW_WIDTH + ni;
+						int nidx = ( ny * BufferWidth ) + nx;
 
 						// Retrieve the neighbor
 						Point& pk = RBuffer[ nidx ];
@@ -185,7 +186,7 @@ void ExecuteJumpFlooding( void ) {
 							continue;
 
 						// Calculate the distance from us to the neighbor's closest seed
-						float newDist = (pk.x-i)*(pk.x-i) + (pk.y-j)*(pk.y-j);
+						float newDist = (pk.x-x)*(pk.x-x) + (pk.y-y)*(pk.y-y);
 
 						// If dist is -1, it means we have no closest seed, so we might as well take this one
 						// Otherwise, only adopt this new seed if it's closer than our current closest seed
@@ -204,12 +205,12 @@ void ExecuteJumpFlooding( void ) {
 		step /= 2;
 
 		// Swap the buffers for the next round
-		UsingBufferA = !UsingBufferA;
+		ReadingBufferA = !ReadingBufferA;
 
 	}
 
 	// Lets us know which buffer we end up reading from
-	if( UsingBufferA == true )
+	if( ReadingBufferA == true )
 		printf( "Reading from BufferA.\n" );
 	else
 		printf( "Reading from BufferB.\n" );
@@ -223,19 +224,32 @@ void DisplayFunc( void ) {
 	glClear( GL_COLOR_BUFFER_BIT );
 
 	// Draw the buffer, if possible
-	Point* Buffer = UsingBufferA == true ? BufferA : BufferB;
+	Point* Buffer = ReadingBufferA == true ? BufferA : BufferB;
 	if( Buffer != NULL ) {
 
 		glPointSize( 1 );
 		glBegin( GL_POINTS );
-			for( int j = 0; j < INIT_WINDOW_HEIGHT; ++j ) {
-				for( int i = 0; i < INIT_WINDOW_WIDTH; ++i ) {
-					int idx = j*INIT_WINDOW_WIDTH + i;
-					glColor3f( (float)Buffer[idx].x/INIT_WINDOW_WIDTH,
-					           (float)Buffer[idx].y/INIT_WINDOW_HEIGHT,
-					           //(float)Buffer[idx].y/INIT_WINDOW_HEIGHT );
+			for( int y = 0; y < WindowHeight; ++y ) {
+				for( int x = 0; x < WindowWidth; ++x ) {
+
+					// The window might not be the same size as the buffer, so
+					// we need to find which point corresponds to this pixel.
+
+					float fx = (float)x / WindowWidth;
+					float fy = (float)y / WindowHeight;
+
+					int bx = fx * BufferWidth;
+					int by = fy * BufferHeight;
+
+					int idx = by * BufferWidth + bx;
+
+					// Calculate color using seed positions for now
+					glColor3f( (float)Buffer[idx].x / BufferWidth,
+					           (float)Buffer[idx].y / BufferHeight,
 					           0.0f );
-					glVertex2i( i, j );
+
+					glVertex2f( fx, fy );
+
 				}
 			}
 		glEnd();
@@ -247,7 +261,7 @@ void DisplayFunc( void ) {
 	glPointSize( 8 );
 	glBegin( GL_POINTS );
 		for( int i = 0; i < Seeds.size(); ++i ) {
-			glVertex2i( Seeds[i].x, Seeds[i].y );
+			glVertex2f( (float)Seeds[i].x / BufferWidth, (float)Seeds[i].y / BufferHeight );
 		}
 	glEnd();
 
@@ -260,7 +274,7 @@ void DisplayFunc( void ) {
 void IdleFunc( void ) {
 
 	// Uncomment the following to repeatedly update the window
-	glutPostRedisplay();
+	//glutPostRedisplay();
 
 }
 
@@ -287,8 +301,8 @@ void KeyboardFunc( unsigned char key, int x, int y ) {
 		// Switch from which buffer we're reading from
 		// In effect, this lets us see the second-to-last iteration
 		case 'b':
-			UsingBufferA = !UsingBufferA;
-			if( UsingBufferA == true )
+			ReadingBufferA = !ReadingBufferA;
+			if( ReadingBufferA == true )
 				printf( "Reading from BufferA.\n" );
 			else
 				printf( "Reading from BufferB.\n" );
@@ -315,7 +329,17 @@ void KeyboardFunc( unsigned char key, int x, int y ) {
 		case 'e':
 			ExecuteJumpFlooding();
 			break;
+
+		// f enters and leaves fullscreen mode
+		case 'f':
+			FullScreen = !FullScreen;
+			FullScreen ? glutFullScreen() : glutPositionWindow(0,0);
+			break;
 	}
+
+	// Request a redisplay
+	glutPostRedisplay();
+
 }
 
 // Called when a mouse button is pressed or released
@@ -329,20 +353,22 @@ void MouseFunc( int button, int state, int x, int y ) {
 
 	if( button == 0 && state == GLUT_DOWN ) {
 
-		Point* Buffer = UsingBufferA == true ? BufferA : BufferB;
+		Point* Buffer = ReadingBufferA == true ? BufferA : BufferB;
 
-		if( Buffer != NULL ) {
-
-			Point& p = Buffer[ y*INIT_WINDOW_WIDTH + x ];
-
-			printf( "The closest seed to pixel (%i,%i) is located at (%i,%i).\n", x, y, p.x, p.y );
-
-		}
-		else {
+		if( Buffer == NULL ) {
 
 			printf( "Creating new seed at (%i,%i).", x, y );
 
-			Point p = { x, y };
+			// The window might not be the same size as the buffer, so we need to
+			// convert the pixel's (x,y) to its corresponding buffer point's (x,y).
+
+			float fx = (float)x / WindowWidth;
+			float fy = (float)y / WindowHeight;
+
+			int bx = fx * BufferWidth;
+			int by = fy * BufferHeight;
+
+			Point p = { bx, by };
 			Seeds.push_back( p );
 
 			printf( " %zi seeds total.\n", Seeds.size() );
@@ -350,6 +376,9 @@ void MouseFunc( int button, int state, int x, int y ) {
 		}
 
 	}
+
+	// Request a redisplay
+	glutPostRedisplay();
 
 }
 
@@ -360,7 +389,7 @@ void Initialize( void ) {
 	glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
 
 	// Set up orthogonal projection with (0,0) at the top-left corner of the window
-	glOrtho( 0, INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT, 0, -1 ,1 );
+	glOrtho( 0, 1, 1, 0, -1 ,1 );
 
 }
 
