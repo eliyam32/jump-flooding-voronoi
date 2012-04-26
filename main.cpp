@@ -1,6 +1,6 @@
 /*=================================================================================================
   Author: Renato Farias
-  Date: April 13th, 2012
+  Created on: April 13th, 2012
   Purpose: A CPU implementation of the Jump Flooding Algorithm from the paper "Jump Flooding in
    GPU With Applications to Voronoi Diagram and Distance Transform" [Rong 2006]. The result is
    a Voronoi diagram generated from a number of seeds which the user provides with mouse clicks.
@@ -22,11 +22,11 @@ using namespace std;
   DEFINES
 =================================================================================================*/
 
-// Initial window size.
+// Initial window dimensions
 #define INIT_WINDOW_WIDTH  1024
-#define INIT_WINDOW_HEIGHT 512
+#define INIT_WINDOW_HEIGHT  768
 
-// Screen position where window is created.
+// Initial screen position
 #define INIT_WINDOW_POS_X 600
 #define INIT_WINDOW_POS_Y 0
 
@@ -43,9 +43,9 @@ typedef struct {
   GLOBALS
 =================================================================================================*/
 
-// Window's current size
-int WindowSizeX = INIT_WINDOW_WIDTH;
-int WindowSizeY = INIT_WINDOW_HEIGHT;
+// Current window dimensions
+int WindowWidth  = INIT_WINDOW_WIDTH;
+int WindowHeight = INIT_WINDOW_HEIGHT;
 
 // List of seeds
 vector<Point> Seeds;
@@ -66,7 +66,7 @@ void ExecuteJumpFlooding( void ) {
 
 	printf( "Executing the Jump Flooding Algorithm...\n" );
 
-	assert( WindowSizeX == INIT_WINDOW_WIDTH && WindowSizeY == INIT_WINDOW_HEIGHT );
+	assert( WindowWidth == INIT_WINDOW_WIDTH && WindowHeight == INIT_WINDOW_HEIGHT );
 
 	// If the buffers already exist, delete them
 	if( BufferA != NULL ) {
@@ -256,20 +256,31 @@ void DisplayFunc( void ) {
 
 }
 
-// Makes the necessary adjustments in case of window resizing.
-void ReshapeFunc( int width, int height ) {
+// Called when there is nothing to do
+void IdleFunc( void ) {
 
-	// Update the viewport
-	glViewport( 0, 0, (GLsizei)width, (GLsizei)height );
+	// Uncomment the following to repeatedly update the window
+	glutPostRedisplay();
 
 }
 
-// Called when a keyboard key is pressed.
+// Makes the necessary adjustments if the window is resized
+void ReshapeFunc( int width, int height ) {
+
+	// Adjust the viewport
+	glViewport( 0, 0, (GLsizei)width, (GLsizei)height );
+
+	// Update current window dimensions
+	WindowWidth  = width;
+	WindowHeight = height;
+
+}
+
+// Called when a (ASCII) keyboard key is pressed
 void KeyboardFunc( unsigned char key, int x, int y ) {  
 
 	switch( key ) {
-		// Quit the program
-		case 'q':
+		// ESC exits the program
 		case 27:
 			exit(0);
 
@@ -310,11 +321,11 @@ void KeyboardFunc( unsigned char key, int x, int y ) {
 // Called when a mouse button is pressed or released
 void MouseFunc( int button, int state, int x, int y ) {
 
-	//button 0: left button
-	//button 1: middle button
-	//button 2: right button
-	//button 3: scroll up
-	//button 4: scroll down
+	// Key 0: left button
+	// Key 1: middle button
+	// Key 2: right button
+	// Key 3: scroll up
+	// Key 4: scroll down
 
 	if( button == 0 && state == GLUT_DOWN ) {
 
@@ -342,13 +353,13 @@ void MouseFunc( int button, int state, int x, int y ) {
 
 }
 
-// For initializing OpenGL settings.
-void InitGL( void ) {
+// Initializes variables and OpenGL settings
+void Initialize( void ) {
 
-	// Set the background clear color to white.
+	// Set the background color to white
 	glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
 
-	// Set orthogonal projection
+	// Set up orthogonal projection with (0,0) at the top-left corner of the window
 	glOrtho( 0, INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT, 0, -1 ,1 );
 
 }
@@ -356,21 +367,26 @@ void InitGL( void ) {
 // Where it all begins...
 int main( int argc, char **argv ) {
 
+	// Initialize GLUT and window properties
 	glutInit( &argc, argv );
 	glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH );
 	glutInitWindowSize( INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT );
 	glutInitWindowPosition( INIT_WINDOW_POS_X, INIT_WINDOW_POS_Y );
 
-	glutCreateWindow( "Jump Flooding" );
+	// Create main OpenGL window
+	glutCreateWindow( "Jump Flooding Voronoi" );
 
-	InitGL();
+	// Initialize variables and settings
+	Initialize();
 
+	// Register callback functions
 	glutDisplayFunc( DisplayFunc );
-	glutIdleFunc( DisplayFunc );
+	glutIdleFunc( IdleFunc );
 	glutReshapeFunc( ReshapeFunc );
 	glutKeyboardFunc( KeyboardFunc );
 	glutMouseFunc( MouseFunc );
 
+	// Enter the main loop
 	glutMainLoop();
 
 	return 0;
