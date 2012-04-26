@@ -1,5 +1,5 @@
 /*=================================================================================================
-  Author: Renato Farias
+  Author: Renato Farias (renatomdf@gmail.com)
   Created on: April 13th, 2012
   Purpose: A CPU implementation of the Jump Flooding Algorithm from the paper "Jump Flooding in
    GPU With Applications to Voronoi Diagram and Distance Transform" [Rong 2006]. The result is
@@ -27,7 +27,7 @@ using namespace std;
 #define INIT_WINDOW_HEIGHT  768
 
 // Initial screen position
-#define INIT_WINDOW_POS_X 600
+#define INIT_WINDOW_POS_X 0
 #define INIT_WINDOW_POS_Y 0
 
 /*=================================================================================================
