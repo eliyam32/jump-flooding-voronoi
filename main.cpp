@@ -1,7 +1,7 @@
 /*=================================================================================================
   Author: Renato Farias (renatomdf@gmail.com)
   Created on: April 13th, 2012
-  Purpose: A CPU implementation of the Jump Flooding Algorithm from the paper "Jump Flooding in
+  Purpose: A CPU implementation of the Jump Flooding algorithm from the paper "Jump Flooding in
    GPU With Applications to Voronoi Diagram and Distance Transform" [Rong 2006]. The result is
    a Voronoi diagram generated from a number of seeds which the user provides with mouse clicks.
 =================================================================================================*/
@@ -50,6 +50,12 @@ int WindowHeight = INIT_WINDOW_HEIGHT;
 // List of seeds
 vector<Point> Seeds;
 
+// Index of the seed currently selected, if any
+int CurSeedIdx = -1;
+
+// How large to draw each seed, used with glPointSize()
+int SeedSize = 8;
+
 // Buffers
 Point* BufferA = NULL;
 Point* BufferB = NULL;
@@ -68,20 +74,34 @@ bool FullScreen = false;
   FUNCTIONS
 =================================================================================================*/
 
-// Jump Flooding Algorithm
-void ExecuteJumpFlooding( void ) {
+// If the buffers exist, delete them
+void ClearBuffers( void ) {
 
-	printf( "Executing the Jump Flooding Algorithm...\n" );
-
-	// If the buffers already exist, delete them first
 	if( BufferA != NULL ) {
 		free( BufferA );
 		BufferA = NULL;
 	}
+
 	if( BufferB != NULL ) {
 		free( BufferB );
 		BufferB = NULL;
 	}
+
+}
+
+// Jump Flooding Algorithm
+void ExecuteJumpFlooding( void ) {
+
+	// No seeds will just give us a black screen :P
+	if( Seeds.size() < 1 ) {
+		printf( "Please create at least 1 seed.\n" );
+		return;
+	}
+
+	printf( "Executing the Jump Flooding algorithm...\n" );
+
+	// Clear the buffers before we start
+	ClearBuffers();
 
 	// Allocate memory for the two buffers
 	BufferA = (Point*)malloc( sizeof( Point ) * BufferWidth * BufferHeight );
@@ -119,16 +139,12 @@ void ExecuteJumpFlooding( void ) {
 	// Carry out the rounds of Jump Flooding
 	while( step >= 1 ) {
 
-		printf( "Jump Flooding with Step %i.", step );
-
 		// Set which buffers we'll be using
 		if( ReadingBufferA == true ) {
-			printf( " Reading from BufferA and writing to BufferB.\n" );
 			RBuffer = BufferA;
 			WBuffer = BufferB;
 		}
 		else {
-			printf( " Reading from BufferB and writing to BufferA.\n" );
 			RBuffer = BufferB;
 			WBuffer = BufferA;
 		}
@@ -208,13 +224,6 @@ void ExecuteJumpFlooding( void ) {
 		ReadingBufferA = !ReadingBufferA;
 
 	}
-
-	// Lets us know which buffer we end up reading from
-	if( ReadingBufferA == true )
-		printf( "Reading from BufferA.\n" );
-	else
-		printf( "Reading from BufferB.\n" );
-
 }
 
 // Renders the next frame and puts it on the display
@@ -257,11 +266,21 @@ void DisplayFunc( void ) {
 	}
 
 	// Draw the seeds
+	glPointSize( SeedSize );
 	glColor3f( 0.0f, 0.0f, 1.0f );
-	glPointSize( 8 );
 	glBegin( GL_POINTS );
 		for( int i = 0; i < Seeds.size(); ++i ) {
+
+			// If this is the selected seed, use red...
+			if( i == CurSeedIdx )
+				glColor3f( 1.0f, 0.0f, 0.0f );
+
 			glVertex2f( (float)Seeds[i].x / BufferWidth, (float)Seeds[i].y / BufferHeight );
+
+			// ...then set the color back to normal
+			if( i == CurSeedIdx )
+				glColor3f( 0.0f, 0.0f, 1.0f );
+
 		}
 	glEnd();
 
@@ -298,30 +317,10 @@ void KeyboardFunc( unsigned char key, int x, int y ) {
 		case 27:
 			exit(0);
 
-		// Switch from which buffer we're reading from
-		// In effect, this lets us see the second-to-last iteration
-		case 'b':
-			ReadingBufferA = !ReadingBufferA;
-			if( ReadingBufferA == true )
-				printf( "Reading from BufferA.\n" );
-			else
-				printf( "Reading from BufferB.\n" );
-			break;
-
 		// Clear Seeds and buffers
 		case 'c':
 			Seeds.clear();
-
-			if( BufferA != NULL ) {
-				free( BufferA );
-				BufferA = NULL;
-			}
-
-			if( BufferB != NULL ) {
-				free( BufferB );
-				BufferB = NULL;
-			}
-
+			ClearBuffers();
 			printf( "Clear.\n" );
 			break;
 
@@ -351,16 +350,11 @@ void MouseFunc( int button, int state, int x, int y ) {
 	// Key 3: scroll up
 	// Key 4: scroll down
 
-	if( button == 0 && state == GLUT_DOWN ) {
-
-		Point* Buffer = ReadingBufferA == true ? BufferA : BufferB;
-
-		if( Buffer == NULL ) {
-
-			printf( "Creating new seed at (%i,%i).", x, y );
+	if( button == 0 ) {
+		if( state == GLUT_DOWN ) {
 
 			// The window might not be the same size as the buffer, so we need to
-			// convert the pixel's (x,y) to its corresponding buffer point's (x,y).
+			// convert the pixel's (x,y) to its corresponding buffer (x,y)
 
 			float fx = (float)x / WindowWidth;
 			float fy = (float)y / WindowHeight;
@@ -368,17 +362,81 @@ void MouseFunc( int button, int state, int x, int y ) {
 			int bx = fx * BufferWidth;
 			int by = fy * BufferHeight;
 
-			Point p = { bx, by };
-			Seeds.push_back( p );
+			// Get a pointer to the buffer we're currently using
+			Point* Buffer = ReadingBufferA == true ? BufferA : BufferB;
 
-			printf( " %zi seeds total.\n", Seeds.size() );
+			// If the Voronoi diagram has yet to be created, add a seed
+			// Otherwise, check if one of the seeds has been selected
+			if( Buffer == NULL ) {
+
+				printf( "Creating new seed at (%i,%i).", x, y );
+
+				Point p = { bx, by };
+				Seeds.push_back( p );
+
+				printf( " %zi seeds total.\n", Seeds.size() );
+
+			}
+			else {
+
+				// Has one of the seeds been selected?
+				for( int i = 0; i < Seeds.size(); ++i ) {
+
+					Point& p = Seeds[i];
+
+					float dist = (bx-p.x)*(bx-p.x) + (by-p.y)*(by-p.y);
+
+					if( dist <= SeedSize*SeedSize ) {
+						CurSeedIdx = i;
+						break;
+					}
+
+				}
+
+			}
 
 		}
+		else { // state == GLUT_UP
 
+			if( CurSeedIdx != -1 ) {
+
+				// Recreate the Voronoi diagram
+				ExecuteJumpFlooding();
+
+				// There's no longer a seed selected
+				CurSeedIdx = -1;
+
+			}
+
+		}
 	}
 
 	// Request a redisplay
 	glutPostRedisplay();
+
+}
+
+// Called when the mouse cursor is moved while a mouse button is pressed
+void MotionFunc( int x, int y ) {
+
+	// If there's a seed selected, move it
+	if( CurSeedIdx != -1 ) {
+
+		// Calculate the seed's new position
+		float fx = (float)x / WindowWidth;
+		float fy = (float)y / WindowHeight;
+
+		int bx = fx * BufferWidth;
+		int by = fy * BufferHeight;
+
+		// Update it with its new position
+		Seeds[ CurSeedIdx ].x = bx;
+		Seeds[ CurSeedIdx ].y = by;
+
+		// Request a redisplay
+		glutPostRedisplay();
+
+	}
 
 }
 
@@ -412,8 +470,10 @@ int main( int argc, char **argv ) {
 	glutDisplayFunc( DisplayFunc );
 	glutIdleFunc( IdleFunc );
 	glutReshapeFunc( ReshapeFunc );
+
 	glutKeyboardFunc( KeyboardFunc );
 	glutMouseFunc( MouseFunc );
+	glutMotionFunc( MotionFunc );
 
 	// Enter the main loop
 	glutMainLoop();
