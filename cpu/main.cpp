@@ -1,6 +1,7 @@
 /*=================================================================================================
   Author: Renato Farias (renatomdf@gmail.com)
   Created on: April 13th, 2012
+  Updated on: June 12th, 2012
   Purpose: A CPU implementation of the Jump Flooding algorithm from the paper "Jump Flooding in
    GPU With Applications to Voronoi Diagram and Distance Transform" [Rong 2006]. The result is
    a Voronoi diagram generated from a number of seeds which the user provides with mouse clicks.
@@ -69,6 +70,16 @@ bool ReadingBufferA = true;
 
 // Is the window currently fullscreen?
 bool FullScreen = false;
+
+// Pop-up menu
+int MenuId;
+enum MenuEntries {
+	ENTRY_QUIT = 0,
+	ENTRY_GENERATE_VORONOI,
+	ENTRY_CLEAR_ALL,
+	ENTRY_FULLSCREEN_ENTER,
+	ENTRY_FULLSCREEN_LEAVE
+};
 
 /*=================================================================================================
   FUNCTIONS
@@ -440,6 +451,42 @@ void MotionFunc( int x, int y ) {
 
 }
 
+// Called when an item from a pop-up menu is selected
+void MenuFunc( int value ) {
+
+	switch( value ) {
+		case ENTRY_QUIT:
+			exit(0);
+
+		case ENTRY_GENERATE_VORONOI:
+			ExecuteJumpFlooding();
+			break;
+
+		case ENTRY_CLEAR_ALL:
+			Seeds.clear();
+			ClearBuffers();
+			printf( "Clear.\n" );
+			break;
+
+		case ENTRY_FULLSCREEN_ENTER:
+			if( !FullScreen ) {
+				glutFullScreen();
+				FullScreen = true;
+			}
+			break;
+
+		case ENTRY_FULLSCREEN_LEAVE:
+			if( FullScreen ) {
+				glutPositionWindow(0,0);
+				FullScreen = false;
+			}
+			break;
+	}
+
+	glutPostRedisplay();
+
+}
+
 // Initializes variables and OpenGL settings
 void Initialize( void ) {
 
@@ -449,6 +496,17 @@ void Initialize( void ) {
 	// Set up orthogonal projection with (0,0) at the top-left corner of the window
 	glOrtho( 0, 1, 1, 0, -1 ,1 );
 
+	// Create main pop-up menu and add entries
+	MenuId = glutCreateMenu( &MenuFunc );
+	glutAddMenuEntry( "Generate Voronoi Diagram", ENTRY_GENERATE_VORONOI );
+	glutAddMenuEntry( "Clear Seeds", ENTRY_CLEAR_ALL );
+	glutAddMenuEntry( "Enter FullScreen", ENTRY_FULLSCREEN_ENTER );
+	glutAddMenuEntry( "Leave FullScreen", ENTRY_FULLSCREEN_LEAVE );
+	glutAddMenuEntry( "Quit", ENTRY_QUIT );
+
+	// Attach menu to right mouse button
+	glutAttachMenu( GLUT_RIGHT_BUTTON );
+
 }
 
 // Where it all begins...
@@ -456,7 +514,7 @@ int main( int argc, char **argv ) {
 
 	// Initialize GLUT and window properties
 	glutInit( &argc, argv );
-	glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH );
+	glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGBA );
 	glutInitWindowSize( INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT );
 	glutInitWindowPosition( INIT_WINDOW_POS_X, INIT_WINDOW_POS_Y );
 
