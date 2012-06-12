@@ -228,6 +228,10 @@ void DisplayFunc( void ) {
 
 	SetOrthoView();
 
+	// uniform location  variables
+	GLint uIterLoc,uStepLoc,uTex0Loc,uTex1Loc;
+	GLint uWidthLoc,uHeightLoc;
+
 	/*===============================================================================
 	  RENDER POINTS TO TEXTURE
 	===============================================================================*/
@@ -242,7 +246,7 @@ void DisplayFunc( void ) {
 	glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
 	glClear( GL_COLOR_BUFFER_BIT );
 
-	// Shader that simply stores the point's pixel position
+	// Shader that simply stores the point's pixel position and color
 	glUseProgram( progID[ CPOS_SHADER ] );
 
 	// Draw the seeds into the texture
@@ -262,23 +266,19 @@ void DisplayFunc( void ) {
 	glUseProgram( progID[ JUMP_SHADER ] );
 
 	// Activate textures and send uniform variables to the shader program
-	char tex[12];
-	GLint uTexLoc;
 	for( int i = 0; i < numTextures; ++i ) {
 		glActiveTexture( GL_TEXTURE0 + i );
 		glBindTexture( GL_TEXTURE_RECTANGLE, textureId[i] );
-		sprintf( tex, "tex%i", i );
-		uTexLoc = glGetUniformLocation( progID[ JUMP_SHADER ], tex );
-		glUniform1i( uTexLoc, i );
 	}
 
-	GLint uIterLoc = glGetUniformLocation( progID[ JUMP_SHADER ], "iter" );
-	GLint uStepLoc = glGetUniformLocation( progID[ JUMP_SHADER ], "step" );
+	uStepLoc = glGetUniformLocation( progID[ JUMP_SHADER ], "step" );
+	uTex0Loc = glGetUniformLocation( progID[ JUMP_SHADER ], "tex0" );
+	uTex1Loc = glGetUniformLocation( progID[ JUMP_SHADER ], "tex1" );
 
-	GLint uWidthLoc = glGetUniformLocation( progID[ JUMP_SHADER ], "width" );
+	uWidthLoc = glGetUniformLocation( progID[ JUMP_SHADER ], "width" );
 	glUniform1f( uWidthLoc, (float)WindowWidth );
 
-	GLint uHeightLoc = glGetUniformLocation( progID[ JUMP_SHADER ], "height" );
+	uHeightLoc = glGetUniformLocation( progID[ JUMP_SHADER ], "height" );
 	glUniform1f( uHeightLoc, (float)WindowHeight );
 
 	bool readingAttach0 = true;
@@ -292,12 +292,14 @@ void DisplayFunc( void ) {
 		if( readingAttach0 == true ) {
 			// Set rendering destination to second set of buffers
 			glDrawBuffers( 2, buffersB );
-			glUniform1i( uIterLoc, 0 );
+			glUniform1i( uTex0Loc, 0 );
+			glUniform1i( uTex1Loc, 1 );
 		}
 		else {
 			// Set rendering destination to first set of buffers
 			glDrawBuffers( 2, buffersA );
-			glUniform1i( uIterLoc, 1 );
+			glUniform1i( uTex0Loc, 2 );
+			glUniform1i( uTex1Loc, 3 );
 		}
 
 		// Draw a plane over the entire screen to invoke shaders
@@ -314,7 +316,7 @@ void DisplayFunc( void ) {
 	if( readingAttach0 == true )
 		curTexture = 1;
 	else
-		curTexture = 2;
+		curTexture = 3;
 
 	/*===============================================================================
 	  NORMAL RENDER
@@ -335,19 +337,10 @@ void DisplayFunc( void ) {
 	for( int i = 0; i < numTextures; ++i ) {
 		glActiveTexture( GL_TEXTURE0 + i );
 		glBindTexture( GL_TEXTURE_RECTANGLE, textureId[ i ] );
-		sprintf( tex, "tex%i", i );
-		uTexLoc = glGetUniformLocation( progID[ TEXTURE_SHADER ], tex );
-		glUniform1i( uTexLoc, i );
 	}
 
-	uWidthLoc = glGetUniformLocation( progID[ TEXTURE_SHADER ], "width" );
-	glUniform1f( uWidthLoc, (float)WindowWidth );
-
-	uHeightLoc = glGetUniformLocation( progID[ TEXTURE_SHADER ], "height" );
-	glUniform1f( uHeightLoc, (float)WindowHeight );
-
-	GLint uTexIdLoc = glGetUniformLocation( progID[ TEXTURE_SHADER ], "texId" );
-	glUniform1i( uTexIdLoc, curTexture-1 );
+	uTex0Loc = glGetUniformLocation( progID[ TEXTURE_SHADER ], "tex" );
+	glUniform1i( uTex0Loc, curTexture );
 
 	// Draw a plane over the entire screen to invoke shaders
 	plane();
