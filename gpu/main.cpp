@@ -28,8 +28,8 @@ using namespace std;
 =================================================================================================*/
 
 // Initial window dimensions
-#define INIT_WINDOW_WIDTH  512
-#define INIT_WINDOW_HEIGHT 512
+#define INIT_WINDOW_WIDTH  1024
+#define INIT_WINDOW_HEIGHT  768
 
 // Initial screen position
 #define INIT_WINDOW_POS_X 0
@@ -42,6 +42,7 @@ using namespace std;
 // A seed with (x,y) coordinates
 typedef struct {
 	float x,y;
+	float r,g,b;
 } Seed;
 
 /*=================================================================================================
@@ -78,8 +79,10 @@ enum ShaderEnum {
 GLuint vertID[ numShaders ], fragID[ numShaders ], progID[ numShaders ];
 
 // Render to texture
-GLuint framebufferId, renderbufferId, textureId[2];
-GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+#define numTextures 4
+GLuint framebufferId, renderbufferId, textureId[ numTextures ];
+GLenum buffersA[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+GLenum buffersB[] = { GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
 int curTexture = 1;
 
 // Pop-up menu
@@ -100,8 +103,8 @@ void CreateFBO( void ) {
 
 	// Create a texture object
 	printf( "Creating texture object. " );
-	glGenTextures( 2, &textureId[0] );
-	for( int i = 0; i < 2; ++i ) {
+	glGenTextures( numTextures, &textureId[0] );
+	for( int i = 0; i < numTextures; ++i ) {
 		glBindTexture( GL_TEXTURE_RECTANGLE, textureId[ i ] );
 		glTexParameterf( GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 		glTexParameterf( GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
@@ -127,6 +130,8 @@ void CreateFBO( void ) {
 	printf( "Attaching texture object to the FBO. " );
 	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_RECTANGLE, textureId[0], 0 );
 	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_RECTANGLE, textureId[1], 0 );
+	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_RECTANGLE, textureId[2], 0 );
+	glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_RECTANGLE, textureId[3], 0 );
 	printf( "Finished.\n" );
 
 	// Attach the renderbuffer to the framebuffer depth attachment point
@@ -173,18 +178,23 @@ void CreateRandomSeeds( void ) {
 
 	Seeds.clear();
 
-	int numSeeds = my_rand( 9 ) + 3;
+	int numSeeds = my_rand( 15 ) + 4;
 
 	for( int i = 0; i < numSeeds; ++i ) {
 
 		Seed newSeed;
+
 		newSeed.x = my_rand( INIT_WINDOW_WIDTH  ) / (float)INIT_WINDOW_WIDTH;
 		newSeed.y = my_rand( INIT_WINDOW_HEIGHT ) / (float)INIT_WINDOW_HEIGHT;
+
+		newSeed.r = my_rand( 100 ) / (float)100;
+		newSeed.g = my_rand( 100 ) / (float)100;
+		newSeed.b = my_rand( 100 ) / (float)100;
 
 		Seeds.push_back( newSeed );
 	}
 
-	printf( "Number of seeds total: %zu.\n", Seeds.size() );
+	printf( "Number of seeds: %zu.\n", Seeds.size() );
 
 }
 
@@ -225,8 +235,8 @@ void DisplayFunc( void ) {
 	// Bind our framebuffer
 	glBindFramebuffer( GL_FRAMEBUFFER, framebufferId );
 
-	// Set rendering destination to first color attachment
-	glDrawBuffer( GL_COLOR_ATTACHMENT0 );
+	// Set the rendering destination to first set of buffers
+	glDrawBuffers( 2, buffersA );
 
 	// Clear the buffer
 	glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
@@ -239,7 +249,7 @@ void DisplayFunc( void ) {
 	glPointSize( 1 );
 	glBegin( GL_POINTS );
 		for( int i = 0; i < Seeds.size(); ++i ) {
-			glColor4f( Seeds[i].x, Seeds[i].y, 0.0f, 1.0f );
+			glColor4f( Seeds[i].r, Seeds[i].g, Seeds[i].b, 1.0f );
 			glVertex4f( Seeds[i].x, Seeds[i].y, 0.0f, 1.0f );
 		}
 	glEnd();
@@ -254,7 +264,7 @@ void DisplayFunc( void ) {
 	// Activate textures and send uniform variables to the shader program
 	char tex[12];
 	GLint uTexLoc;
-	for( int i = 0; i < 2; ++i ) {
+	for( int i = 0; i < numTextures; ++i ) {
 		glActiveTexture( GL_TEXTURE0 + i );
 		glBindTexture( GL_TEXTURE_RECTANGLE, textureId[i] );
 		sprintf( tex, "tex%i", i );
@@ -280,13 +290,13 @@ void DisplayFunc( void ) {
 		glUniform1f( uStepLoc, (float)step );
 
 		if( readingAttach0 == true ) {
-			// Set rendering destination to second buffer
-			glDrawBuffer( GL_COLOR_ATTACHMENT1 );
+			// Set rendering destination to second set of buffers
+			glDrawBuffers( 2, buffersB );
 			glUniform1i( uIterLoc, 0 );
 		}
 		else {
-			// Set rendering destination to first buffer
-			glDrawBuffer( GL_COLOR_ATTACHMENT0 );
+			// Set rendering destination to first set of buffers
+			glDrawBuffers( 2, buffersA );
 			glUniform1i( uIterLoc, 1 );
 		}
 
@@ -322,7 +332,7 @@ void DisplayFunc( void ) {
 	glUseProgram( progID[ TEXTURE_SHADER ] );
 
 	// Activate textures and send uniform variables to the shader program
-	for( int i = 0; i < 2; ++i ) {
+	for( int i = 0; i < numTextures; ++i ) {
 		glActiveTexture( GL_TEXTURE0 + i );
 		glBindTexture( GL_TEXTURE_RECTANGLE, textureId[ i ] );
 		sprintf( tex, "tex%i", i );
