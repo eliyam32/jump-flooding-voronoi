@@ -3,7 +3,7 @@ Jump Flooding Voronoi
 **Author:** Renato Farias (renatomdf@gmail.com)  
 **Created on:** April 13th, 2012  
 **Last updated on:** June 12th, 2012  
-**Purpose:** To implement the Jump Flooding algorithm and use it to generate Voronoi diagrams.  
+**Purpose:** To implement the Jump Flooding algorithm and use it to generate Voronoi diagrams. This technique is from the paper "Jump Flooding in GPU With Applications to Voronoi Diagram and Distance Transform" [Rong 2006].  
 
 **CPU Implementation**  
 The CPU implementation is simpler by far, but very slow.  
