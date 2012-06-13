@@ -23,8 +23,8 @@ void main()
 	nCoord[6] = vec2( gl_FragCoord.s       , gl_FragCoord.t + step );
 	nCoord[7] = vec2( gl_FragCoord.s + step, gl_FragCoord.t + step );
 
-	fragData0  = texture2DRect( tex0, gl_FragCoord.st - vec2(0.5) );
-	colorData0 = texture2DRect( tex1, gl_FragCoord.st - vec2(0.5) );
+	fragData0  = texture2DRect( tex0, gl_FragCoord.st );
+	colorData0 = texture2DRect( tex1, gl_FragCoord.st );
 
 	if( fragData0.a == 1.0 )
 		dist = (fragData0.r-gl_FragCoord.s)*(fragData0.r-gl_FragCoord.s) + (fragData0.g-gl_FragCoord.t)*(fragData0.g-gl_FragCoord.t);
@@ -34,7 +34,7 @@ void main()
 		if( nCoord[i].s < 0.0 || nCoord[i].s >= width || nCoord[i].t < 0.0 || nCoord[i].t >= height )
 			continue;
 
-		neighbor0 = texture2DRect( tex0, nCoord[i] - vec2(0.5) );
+		neighbor0 = texture2DRect( tex0, nCoord[i] );
 
 		if( neighbor0.a != 1.0 )
 			continue;
@@ -43,7 +43,7 @@ void main()
 
 		if( fragData0.a != 1.0 || newDist < dist ) {
 			fragData0 = neighbor0;
-			colorData0 = texture2DRect( tex1, nCoord[i] - vec2(0.5) );
+			colorData0 = texture2DRect( tex1, nCoord[i] );
 			dist = newDist;
 		}
 	}

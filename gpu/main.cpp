@@ -39,10 +39,11 @@ using namespace std;
   STRUCTS
 =================================================================================================*/
 
-// A seed with (x,y) coordinates
+// A seed with coordinates, color, and velocity vector
 typedef struct {
-	float x,y;
-	float r,g,b;
+	float x,y; // location
+	float r,g,b; // color
+	float i,j; // velocity
 } Seed;
 
 /*=================================================================================================
@@ -56,6 +57,9 @@ int WindowHeight = INIT_WINDOW_HEIGHT;
 // List of seeds
 vector<Seed> Seeds;
 
+// Number of seeds to be created
+int NumSeeds = -1;
+
 // How large to draw each seed, used with glPointSize()
 int SeedSize = 10;
 
@@ -68,6 +72,16 @@ bool ReadingBufferA = true;
 
 // Is the window currently fullscreen?
 bool FullScreen = false;
+
+// Show FPS in the title bar?
+bool ShowFPS = true;
+
+// Time when the last frame was drawn
+double LastRefreshTime;
+
+// For calculating FPS
+double FPS_StartTime, FPS_EndTime;
+int FrameCount = 0, FPS = 0, FPS_Update_Interval = 500;
 
 // Shaders
 #define numShaders 3
@@ -173,14 +187,40 @@ void CreateShaderPrograms( void ) {
 
 }
 
+// Apply seeds' velocity vectors
+void UpdateSeedPositions( double delta ) {
+
+	for( int i = 0; i < Seeds.size(); ++i ) {
+
+		float newX = Seeds[i].x + Seeds[i].i * delta / 1000;
+		float newY = Seeds[i].y + Seeds[i].j * delta / 1000;
+
+		if( newX < 0.0f || newX >= 1.0f )
+			Seeds[i].i *= -1;
+		else
+			Seeds[i].x = newX;
+
+		if( newY < 0.0f || newY >= 1.0f )
+			Seeds[i].j *= -1;
+		else
+			Seeds[i].y = newY;
+
+	}
+
+}
+
 // Create a random number of seeds with random coordinates and colors
-void CreateRandomSeeds( void ) {
+void CreateRandomSeeds( bool forceNewNumSeeds = false ) {
 
 	Seeds.clear();
 
-	int numSeeds = my_rand( 15 ) + 4;
+	if( NumSeeds == -1 || forceNewNumSeeds == true )
+		NumSeeds = my_rand( 27 ) + 4;
 
-	for( int i = 0; i < numSeeds; ++i ) {
+	int vMax = 200;
+	int vMin = 100;
+
+	for( int i = 0; i < NumSeeds; ++i ) {
 
 		Seed newSeed;
 
@@ -191,7 +231,14 @@ void CreateRandomSeeds( void ) {
 		newSeed.g = my_rand( 100 ) / (float)100;
 		newSeed.b = my_rand( 100 ) / (float)100;
 
+		//newSeed.i = ( my_rand( vMax - vMin ) + vMin - 1 ) / (float)INIT_WINDOW_WIDTH;
+		//newSeed.j = ( my_rand( vMax - vMin ) + vMin - 1 ) / (float)INIT_WINDOW_HEIGHT;
+
+		newSeed.i = ( my_rand( 2*vMax ) - vMax ) / (float)INIT_WINDOW_WIDTH;
+		newSeed.j = ( my_rand( 2*vMax ) - vMax ) / (float)INIT_WINDOW_HEIGHT;
+
 		Seeds.push_back( newSeed );
+
 	}
 
 	printf( "Number of seeds: %zu.\n", Seeds.size() );
@@ -228,9 +275,23 @@ void DisplayFunc( void ) {
 
 	SetOrthoView();
 
-	// uniform location  variables
+	// Uniform location  variables
 	GLint uIterLoc,uStepLoc,uTex0Loc,uTex1Loc;
 	GLint uWidthLoc,uHeightLoc;
+
+	//for FPS
+	if( ShowFPS == true && FrameCount == 0 )
+		FPS_StartTime = get_clock_msec();
+
+	// Time since last frame for update operations
+	double time = get_clock_msec();
+	double delta = time - LastRefreshTime;
+
+	// Update last refresh time
+	LastRefreshTime = time;
+
+	// Apply velocities
+	UpdateSeedPositions( delta );
 
 	/*===============================================================================
 	  RENDER POINTS TO TEXTURE
@@ -367,13 +428,33 @@ void DisplayFunc( void ) {
 	// Swap the buffers, flushing to screen.
 	glutSwapBuffers();
 
+	//for FPS
+	if( ShowFPS == true ) {
+
+		++FrameCount;
+		FPS_EndTime = get_clock_msec();
+
+		if( FPS_EndTime - FPS_StartTime > FPS_Update_Interval ) {
+
+			FPS = FrameCount / ( FPS_EndTime - FPS_StartTime ) * 1000;
+
+			char title[128];
+			sprintf( title, "Jump Flooding Voronoi | %i Seeds | FPS: %i", NumSeeds, FPS );
+			glutSetWindowTitle( title );
+
+			FrameCount = 0;
+
+		}
+
+	}
+
 }
 
 // Called when there is nothing to do
 void IdleFunc( void ) {
 
 	// Uncomment the following to repeatedly update the window
-	//glutPostRedisplay();
+	glutPostRedisplay();
 
 }
 
@@ -405,7 +486,7 @@ void KeyboardFunc( unsigned char key, int x, int y ) {
 
 		// Create another set of random seeds
 		case 'r':
-			CreateRandomSeeds();
+			CreateRandomSeeds( true );
 			break;
 	}
 
@@ -419,7 +500,7 @@ void MenuFunc( int value ) {
 
 	switch( value ) {
 		case ENTRY_GENERATE_SEEDS:
-			CreateRandomSeeds();
+			CreateRandomSeeds( true );
 			break;
 
 		case ENTRY_FULLSCREEN_ENTER:
@@ -470,6 +551,9 @@ void Initialize( void ) {
 	// Attach menu to right mouse button
 	glutAttachMenu( GLUT_RIGHT_BUTTON );
 
+	// Initialize refresh time
+	LastRefreshTime = get_clock_msec();
+
 }
 
 // Where it all begins...
@@ -486,6 +570,10 @@ int main( int argc, char **argv ) {
 
 	// Initialize GLEW for shaders
 	glewInit();
+
+	// Read number of seeds from the command line
+	if( argc > 1 )
+		NumSeeds = atoi( argv[1] );
 
 	// Initialize variables and settings
 	Initialize();
