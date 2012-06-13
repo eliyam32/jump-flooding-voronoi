@@ -2,9 +2,10 @@
   Author: Renato Farias (renatomdf@gmail.com)
   Created on: April 13th, 2012
   Updated on: June 12th, 2012
-  Purpose: A CPU implementation of the Jump Flooding algorithm from the paper "Jump Flooding in
-   GPU With Applications to Voronoi Diagram and Distance Transform" [Rong 2006]. The result is
-   a Voronoi diagram generated from a number of seeds which the user provides with mouse clicks.
+  About: This is a simple CPU implementation of the Jump Flooding algorithm from the paper "Jump
+   Flooding in GPU With Applications to Voronoi Diagram and Distance Transform" [Rong 2006]. The
+   result is a Voronoi diagram generated from a number of seeds which the user provides with mouse
+   clicks. You can also click on and drag around a seed to reposition it, if that's your thing.
 =================================================================================================*/
 
 /*=================================================================================================

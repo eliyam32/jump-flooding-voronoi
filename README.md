@@ -2,4 +2,19 @@ Jump Flooding Voronoi
 =====================
 **Author:** Renato Farias (renatomdf@gmail.com)  
 **Created on:** April 13th, 2012  
-**Purpose:** An implementation of the Jump Flooding algorithm used to generate Voronoi diagrams. Click to place seeds, press 'e' to execute the Jump Flooding algorithm and generate the Voronoi diagram, and press 'c' to start over. After the Voronoi diagram has been generated, click on a seed and drag to move it.
+**Last updated on:** June 12th, 2012  
+**Purpose:** To implement the Jump Flooding algorithm and use it to generate Voronoi diagrams.  
+
+**CPU Implementation**  
+The CPU implementation is simpler by far, but very slow.  
+- The left mouse button places seeds. (If a Voronoi diagram has already been generated, you must clear it before placing new seeds.)  
+- The right mouse button opens the pop-up menu.  
+- 'c' clears the current diagram (if it has been created) and the seeds.  
+- 'e' executes the Jump Flooding algorithm.  
+- 'f' enters and leaves fullscreen mode.  
+
+**GPU Implementation**  
+The GPU implementation uses render-to-texture and shaders. It is fast enough to continuously update the Voronoi diagram when we apply a velocity to each seed so that it moves about the screen, which is great and nice to look at. Since I only create the textures once, though, resizing tends to screw up the whole thing.  
+- The right mouse button opens the pop-up menu.  
+- 'r' generates a new set of random seeds.  
+- If run from the command line, the first parameter can be used to specify how many seeds to generate. (This number is overriden if you regenerate later.)  

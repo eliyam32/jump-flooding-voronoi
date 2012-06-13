@@ -1,9 +1,11 @@
 /*=================================================================================================
   Author: Renato Farias (renatomdf@gmail.com)
   Created on: June 12th, 2012
-  Purpose: A GPU implementation of the Jump Flooding algorithm from the paper "Jump Flooding in
-   GPU With Applications to Voronoi Diagram and Distance Transform" [Rong 2006]. The result is
-   a Voronoi diagram generated from randomly placed seeds.
+  About: This is a GPU implementation of the Jump Flooding algorithm from the paper "Jump Flooding
+   in GPU With Applications to Voronoi Diagram and Distance Transform" [Rong 2006]. I use
+   render-to-texture and shaders to execute the algorithm, as per the paper. The result is a
+   Voronoi diagram generated from randomly placed seeds. The seeds are given velocities so that
+   they move about the screen.
 =================================================================================================*/
 
 /*=================================================================================================
@@ -273,12 +275,6 @@ void plane( void ) {
 // Renders the next frame and puts it on the display
 void DisplayFunc( void ) {
 
-	SetOrthoView();
-
-	// Uniform location  variables
-	GLint uIterLoc,uStepLoc,uTex0Loc,uTex1Loc;
-	GLint uWidthLoc,uHeightLoc;
-
 	//for FPS
 	if( ShowFPS == true && FrameCount == 0 )
 		FPS_StartTime = get_clock_msec();
@@ -292,6 +288,12 @@ void DisplayFunc( void ) {
 
 	// Apply velocities
 	UpdateSeedPositions( delta );
+
+	SetOrthoView();
+
+	// Uniform location  variables
+	GLint uIterLoc,uStepLoc,uTex0Loc,uTex1Loc;
+	GLint uWidthLoc,uHeightLoc;
 
 	/*===============================================================================
 	  RENDER POINTS TO TEXTURE
@@ -479,10 +481,10 @@ void KeyboardFunc( unsigned char key, int x, int y ) {
 			exit(0);
 
 		// f enters and leaves fullscreen mode
-		case 'f':
+		/*case 'f':
 			FullScreen = !FullScreen;
 			FullScreen ? glutFullScreen() : glutPositionWindow(0,0);
-			break;
+			break;*/
 
 		// Create another set of random seeds
 		case 'r':
@@ -503,19 +505,19 @@ void MenuFunc( int value ) {
 			CreateRandomSeeds( true );
 			break;
 
-		case ENTRY_FULLSCREEN_ENTER:
+		/*case ENTRY_FULLSCREEN_ENTER:
 			if( !FullScreen ) {
 				glutFullScreen();
 				FullScreen = true;
 			}
-			break;
+			break;*/
 
-		case ENTRY_FULLSCREEN_LEAVE:
+		/*case ENTRY_FULLSCREEN_LEAVE:
 			if( FullScreen ) {
 				glutPositionWindow(0,0);
 				FullScreen = false;
 			}
-			break;
+			break;*/
 
 		case ENTRY_QUIT:
 			exit(0);
@@ -544,8 +546,8 @@ void Initialize( void ) {
 	// Create main pop-up menu and add entries
 	MenuId = glutCreateMenu( &MenuFunc );
 	glutAddMenuEntry( "Generate Random Seeds", ENTRY_GENERATE_SEEDS );
-	glutAddMenuEntry( "Enter FullScreen", ENTRY_FULLSCREEN_ENTER );
-	glutAddMenuEntry( "Leave FullScreen", ENTRY_FULLSCREEN_LEAVE );
+	//glutAddMenuEntry( "Enter FullScreen", ENTRY_FULLSCREEN_ENTER );
+	//glutAddMenuEntry( "Leave FullScreen", ENTRY_FULLSCREEN_LEAVE );
 	glutAddMenuEntry( "Quit", ENTRY_QUIT );
 
 	// Attach menu to right mouse button
