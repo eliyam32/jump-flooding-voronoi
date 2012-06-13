@@ -1,6 +1,7 @@
 /*=================================================================================================
   Author: Renato Farias (renatomdf@gmail.com)
   Created on: June 12th, 2012
+  Updated on: June 13th, 2012
   About: This is a GPU implementation of the Jump Flooding algorithm from the paper "Jump Flooding
    in GPU With Applications to Voronoi Diagram and Distance Transform" [Rong 2006]. I use
    render-to-texture and shaders to execute the algorithm, as per the paper. The result is a
