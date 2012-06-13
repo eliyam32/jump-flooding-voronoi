@@ -14,7 +14,7 @@ The CPU implementation is simpler by far, but very slow.
 - 'f' enters and leaves fullscreen mode.  
 
 **GPU Implementation**  
-The GPU implementation uses render-to-texture and shaders. It is fast enough to continuously update the Voronoi diagram when we apply a velocity to each seed so that it moves about the screen, which is great and nice to look at. Since I only create the textures once, though, resizing tends to screw up the whole thing.  
+The GPU implementation uses render-to-texture and shaders. It is fast enough to continuously update the Voronoi diagram when we apply a velocity to each seed so that it moves about the screen, which is great and nice to look at. Since the textures are only created once, though, resizing tends to screw things up.  
 - The right mouse button opens the pop-up menu.  
 - 'r' generates a new set of random seeds.  
 - If run from the command line, the first parameter can be used to specify how many seeds to generate. (This number is overriden if you regenerate later.)  
