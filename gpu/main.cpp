@@ -124,7 +124,8 @@ void CreateFBO( void ) {
 		glBindTexture( GL_TEXTURE_RECTANGLE, textureId[ i ] );
 		glTexParameterf( GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 		glTexParameterf( GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-		glTexImage2D( GL_TEXTURE_RECTANGLE, 0, GL_RGBA32F, INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, 0 );
+		//glTexImage2D( GL_TEXTURE_RECTANGLE, 0, GL_RGBA32F, INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT, 0, GL_RGBA, GL_FLOAT, 0 );
+		glTexImage2D( GL_TEXTURE_RECTANGLE, 0, GL_RGBA32F, 2048, 2048, 0, GL_RGBA, GL_FLOAT, 0 );
 	}
 	printf( "Finished.\n" );
 
@@ -132,7 +133,8 @@ void CreateFBO( void ) {
 	printf( "Creating renderbuffer object. " );
 	glGenRenderbuffers( 1, &renderbufferId );
 	glBindRenderbuffer( GL_RENDERBUFFER, renderbufferId );
-	glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT, INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT );
+	//glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT, INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT );
+	glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 2048, 2048 );
 	glBindRenderbuffer( GL_RENDERBUFFER, 0 );
 	printf( "Finished.\n" );
 
@@ -381,6 +383,8 @@ void DisplayFunc( void ) {
 	else
 		curTexture = 3;
 
+	glFinish();
+
 	/*===============================================================================
 	  NORMAL RENDER
 	===============================================================================*/
@@ -426,6 +430,8 @@ void DisplayFunc( void ) {
 		for( int i = 0; i < Seeds.size(); ++i )
 			glVertex4f( Seeds[i].x, Seeds[i].y, 0.0f, 1.0f );
 	glEnd();
+
+
 
 	// Swap the buffers, flushing to screen.
 	glutSwapBuffers();
@@ -481,10 +487,10 @@ void KeyboardFunc( unsigned char key, int x, int y ) {
 			exit(0);
 
 		// f enters and leaves fullscreen mode
-		/*case 'f':
+		case 'f':
 			FullScreen = !FullScreen;
 			FullScreen ? glutFullScreen() : glutPositionWindow(0,0);
-			break;*/
+			break;
 
 		// Create another set of random seeds
 		case 'r':
@@ -505,19 +511,19 @@ void MenuFunc( int value ) {
 			CreateRandomSeeds( true );
 			break;
 
-		/*case ENTRY_FULLSCREEN_ENTER:
+		case ENTRY_FULLSCREEN_ENTER:
 			if( !FullScreen ) {
 				glutFullScreen();
 				FullScreen = true;
 			}
-			break;*/
+			break;
 
-		/*case ENTRY_FULLSCREEN_LEAVE:
+		case ENTRY_FULLSCREEN_LEAVE:
 			if( FullScreen ) {
 				glutPositionWindow(0,0);
 				FullScreen = false;
 			}
-			break;*/
+			break;
 
 		case ENTRY_QUIT:
 			exit(0);
@@ -546,8 +552,8 @@ void Initialize( void ) {
 	// Create main pop-up menu and add entries
 	MenuId = glutCreateMenu( &MenuFunc );
 	glutAddMenuEntry( "Generate Random Seeds", ENTRY_GENERATE_SEEDS );
-	//glutAddMenuEntry( "Enter FullScreen", ENTRY_FULLSCREEN_ENTER );
-	//glutAddMenuEntry( "Leave FullScreen", ENTRY_FULLSCREEN_LEAVE );
+	glutAddMenuEntry( "Enter FullScreen", ENTRY_FULLSCREEN_ENTER );
+	glutAddMenuEntry( "Leave FullScreen", ENTRY_FULLSCREEN_LEAVE );
 	glutAddMenuEntry( "Quit", ENTRY_QUIT );
 
 	// Attach menu to right mouse button
