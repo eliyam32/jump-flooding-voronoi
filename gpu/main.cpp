@@ -308,7 +308,7 @@ void DisplayFunc( void ) {
 	// Set the rendering destination to first set of buffers
 	glDrawBuffers( 2, buffersA );
 
-	// Clear the buffer
+	// Clear the color buffer
 	glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
 	glClear( GL_COLOR_BUFFER_BIT );
 
@@ -348,10 +348,14 @@ void DisplayFunc( void ) {
 	glUniform1f( uHeightLoc, (float)WindowHeight );
 
 	bool readingAttach0 = true;
-	int step = INIT_WINDOW_WIDTH > INIT_WINDOW_HEIGHT ? INIT_WINDOW_WIDTH/2 : INIT_WINDOW_HEIGHT/2;
+
+	int step = 1;
+	while( step*2 < WindowWidth || step*2 < WindowHeight ) step *= 2;
 
 	// Jump flooding iterations
 	while( step >= 1 ) {
+
+		printf( "Step %i\n", step );
 
 		glUniform1f( uStepLoc, (float)step );
 
@@ -378,6 +382,8 @@ void DisplayFunc( void ) {
 		readingAttach0 = !readingAttach0;
 	}
 
+	printf( "\n" );
+
 	// For rendering, use the texture that was written to last
 	if( readingAttach0 == true )
 		curTexture = 1;
@@ -394,7 +400,7 @@ void DisplayFunc( void ) {
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 	glDrawBuffer( GL_BACK );
 
-	// Clear the buffer
+	// Clear the color buffer
 	glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
 	glClear( GL_COLOR_BUFFER_BIT );
 
@@ -431,8 +437,6 @@ void DisplayFunc( void ) {
 		for( int i = 0; i < Seeds.size(); ++i )
 			glVertex4f( Seeds[i].x, Seeds[i].y, 0.0f, 1.0f );
 	glEnd();
-
-
 
 	// Swap the buffers, flushing to screen.
 	glutSwapBuffers();
