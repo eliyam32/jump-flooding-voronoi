@@ -292,6 +292,7 @@ void DisplayFunc( void ) {
 	// Apply velocities
 	UpdateSeedPositions( delta );
 
+	// Set up orthogonal projection
 	SetOrthoView();
 
 	// Uniform location  variables
@@ -337,7 +338,6 @@ void DisplayFunc( void ) {
 		glBindTexture( GL_TEXTURE_RECTANGLE, textureId[i] );
 	}
 
-	uStepLoc = glGetUniformLocation( progID[ JUMP_SHADER ], "step" );
 	uTex0Loc = glGetUniformLocation( progID[ JUMP_SHADER ], "tex0" );
 	uTex1Loc = glGetUniformLocation( progID[ JUMP_SHADER ], "tex1" );
 
@@ -347,15 +347,14 @@ void DisplayFunc( void ) {
 	uHeightLoc = glGetUniformLocation( progID[ JUMP_SHADER ], "height" );
 	glUniform1f( uHeightLoc, (float)WindowHeight );
 
-	bool readingAttach0 = true;
-
+	uStepLoc = glGetUniformLocation( progID[ JUMP_SHADER ], "step" );
 	int step = 1;
 	while( step*2 < WindowWidth || step*2 < WindowHeight ) step *= 2;
 
+	bool readingAttach0 = true;
+
 	// Jump flooding iterations
 	while( step >= 1 ) {
-
-		printf( "Step %i\n", step );
 
 		glUniform1f( uStepLoc, (float)step );
 
@@ -382,14 +381,10 @@ void DisplayFunc( void ) {
 		readingAttach0 = !readingAttach0;
 	}
 
-	printf( "\n" );
-
 	// For rendering, use the texture that was written to last
-	if( readingAttach0 == true )
-		curTexture = 1;
-	else
-		curTexture = 3;
+	readingAttach0 == true ? curTexture = 1 : curTexture = 3;
 
+	// Make sure jump flooding is finished before continuing
 	glFinish();
 
 	/*===============================================================================
