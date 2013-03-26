@@ -7,12 +7,10 @@ CC =  gcc
 
 EXECUTABLE = main
 
-VCGDIR = $(HOME)/install/vcglib/
-
-OBJS  = $(EXECUTABLE).o $(VCGDIR)/wrap/gui/trackmode.o $(VCGDIR)/wrap/gui/trackball.o textfile.o shader.o buffer.o rfUtil.o
+OBJS  = $(EXECUTABLE).o textfile.o shader.o buffer.o rfUtil.o
 SRC   = $(OBJ:.o=.cpp)
 
-INCLUDES = -I$(VCGDIR) -I/usr/include -I/include
+INCLUDES = -I/usr/include -I/include
 LIBDIRS  = -L/usr/lib
 LIBS     = -lglut -lGL -lGLU -lXext -lX11 -lm -lGLEW
 
